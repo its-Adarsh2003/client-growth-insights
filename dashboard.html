@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Growth Insights Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        .metric-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .metric-value { font-size: 2.5rem; font-weight: bold; }
+        .chart-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="#"><i class="fas fa-chart-line me-2"></i>Client Growth Insights</a>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <h2 class="mb-4">Growth Dashboard</h2>
+
+        <!-- KPI Metrics -->
+        <div class="row">
+            <div class="col-lg-3 col-md-6">
+                <div class="metric-card">
+                    <div class="metric-value">{{ metrics.total_leads }}</div>
+                    <div><i class="fas fa-users me-2"></i>Total Leads</div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="metric-card">
+                    <div class="metric-value">{{ metrics.total_conversions }}</div>
+                    <div><i class="fas fa-check-circle me-2"></i>Conversions</div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="metric-card">
+                    <div class="metric-value">{{ metrics.conversion_rate }}%</div>
+                    <div><i class="fas fa-percentage me-2"></i>Conversion Rate</div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="metric-card">
+                    <div class="metric-value">${{ metrics.total_revenue }}</div>
+                    <div><i class="fas fa-dollar-sign me-2"></i>Total Revenue</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-3 col-md-6">
+                <div class="metric-card">
+                    <div class="metric-value">${{ metrics.cac }}</div>
+                    <div><i class="fas fa-chart-bar me-2"></i>CAC</div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="metric-card">
+                    <div class="metric-value">${{ metrics.ltv }}</div>
+                    <div><i class="fas fa-heart me-2"></i>LTV</div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="metric-card">
+                    <div class="metric-value">${{ metrics.mrr }}</div>
+                    <div><i class="fas fa-sync me-2"></i>MRR</div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="metric-card">
+                    <div class="metric-value">{{ metrics.churn_rate }}%</div>
+                    <div><i class="fas fa-user-times me-2"></i>Churn Rate</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <h5>Conversion Funnel</h5>
+                    <div id="funnel-chart"></div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <h5>Revenue Growth</h5>
+                    <div id="revenue-chart"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Data Form -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <h5>Add New Data</h5>
+                    <form method="POST" action="{{ url_for('add_data') }}">
+                        <div class="mb-3">
+                            <select name="data_type" class="form-select" required onchange="toggleFields()">
+                                <option value="">Select type...</option>
+                                <option value="leads">Leads</option>
+                                <option value="conversions">Conversions</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <input type="date" name="date" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <input type="text" name="source" class="form-control" placeholder="Source (e.g., Google Ads)" required>
+                        </div>
+
+                        <div id="leads-fields" style="display: none;">
+                            <div class="mb-3">
+                                <input type="number" name="lead_count" class="form-control" placeholder="Lead Count" min="0">
+                            </div>
+                            <div class="mb-3">
+                                <input type="number" name="cost" step="0.01" class="form-control" placeholder="Cost ($)" min="0">
+                            </div>
+                        </div>
+
+                        <div id="conversions-fields" style="display: none;">
+                            <div class="mb-3">
+                                <input type="number" name="conversions" class="form-control" placeholder="Conversions" min="0">
+                            </div>
+                            <div class="mb-3">
+                                <input type="number" name="revenue" step="0.01" class="form-control" placeholder="Revenue ($)" min="0">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">Add Data</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <h5>Source Performance</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Source</th>
+                                    <th>Leads</th>
+                                    <th>Conversions</th>
+                                    <th>Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for source in source_performance %}
+                                <tr>
+                                    <td>{{ source.source }}</td>
+                                    <td>{{ source.leads }}</td>
+                                    <td>{{ source.conversions }}</td>
+                                    <td>${{ "%.0f"|format(source.revenue) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleFields() {
+            const type = document.querySelector('select[name="data_type"]').value;
+            const leadsFields = document.getElementById('leads-fields');
+            const conversionsFields = document.getElementById('conversions-fields');
+
+            if (type === 'leads') {
+                leadsFields.style.display = 'block';
+                conversionsFields.style.display = 'none';
+            } else if (type === 'conversions') {
+                leadsFields.style.display = 'none';
+                conversionsFields.style.display = 'block';
+            } else {
+                leadsFields.style.display = 'none';
+                conversionsFields.style.display = 'none';
+            }
+        }
+
+        // Render Charts
+        {% if charts.funnel %}
+        var funnelData = {{ charts.funnel | safe }};
+        Plotly.newPlot('funnel-chart', funnelData.data, funnelData.layout, {responsive: true});
+        {% endif %}
+
+        {% if charts.revenue %}
+        var revenueData = {{ charts.revenue | safe }};
+        Plotly.newPlot('revenue-chart', revenueData.data, revenueData.layout, {responsive: true});
+        {% endif %}
+
+        // Set today's date
+        document.querySelector('input[name="date"]').value = new Date().toISOString().split('T')[0];
+    </script>
+</body>
+</html>
