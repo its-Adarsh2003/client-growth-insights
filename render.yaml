@@ -2,6 +2,10 @@ services:
   - type: web
     name: client-growth-insights
     env: python
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "gunicorn app:app"
+    buildCommand: |
+      pyenv install 3.11.9 -s
+      pyenv global 3.11.9
+      pip install --upgrade pip setuptools wheel
+      pip install -r requirements.txt
+    startCommand: gunicorn app:app
     plan: free
