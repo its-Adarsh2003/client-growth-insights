@@ -1,3 +1,6 @@
+setuptools>=65.5.0
+wheel
+gunicorn==21.2.0
 Flask==2.3.3
 pandas==2.0.3
 plotly==5.17.0
