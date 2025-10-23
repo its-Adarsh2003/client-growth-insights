@@ -6,4 +6,3 @@ plotly==5.17.0
 setuptools>=70.0.0
 wheel
 setuptools-scm
-setuptools-distutils
