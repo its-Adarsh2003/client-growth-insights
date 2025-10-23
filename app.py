@@ -9,10 +9,16 @@ import os
 import numpy as np
 
 app = Flask(__name__)
+
+# 1️⃣ SECRET_KEY should be a random string, not your DB URL
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-change-in-production')
 
+# 2️⃣ DATABASE_URL environment variable (can be SQLite or PostgreSQL URL)
+DATABASE_URL = os.environ.get('DATABASE_URL', 'growth_insights.db')
+
 def get_db_connection():
-    conn = sqlite3.connect('growth_insights.db')
+    # If you later switch to Postgres, you can use psycopg2.connect(DATABASE_URL)
+    conn = sqlite3.connect(DATABASE_URL)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -63,20 +69,17 @@ def calculate_metrics():
             'churn_rate': 5  # Default assumption
         }
 
-    # Basic metrics
     total_leads = leads_df['lead_count'].sum() if not leads_df.empty else 0
     total_conversions = conversions_df['conversions'].sum() if not conversions_df.empty else 0
     total_revenue = conversions_df['revenue'].sum() if not conversions_df.empty else 0
     total_cost = leads_df['cost'].sum() if not leads_df.empty else 0
 
-    # Calculated metrics
     conversion_rate = (total_conversions / total_leads * 100) if total_leads > 0 else 0
     cac = total_cost / total_conversions if total_conversions > 0 else 0
 
-    # Simplified metrics for demo
-    ltv = 1200  # Assumed average
-    mrr = total_revenue * 0.1  # Assumed 10% recurring
-    churn_rate = 5  # Assumed 5%
+    ltv = 1200
+    mrr = total_revenue * 0.1
+    churn_rate = 5
 
     return {
         'total_leads': int(total_leads),
@@ -92,11 +95,8 @@ def calculate_metrics():
 @app.route('/')
 def dashboard():
     conn = get_db_connection()
-
-    # Get metrics
     metrics = calculate_metrics()
 
-    # Get data for charts
     leads_df = pd.read_sql_query('''
         SELECT date, SUM(lead_count) as leads, SUM(cost) as cost
         FROM leads 
@@ -111,10 +111,8 @@ def dashboard():
         ORDER BY date
     ''', conn)
 
-    # Create charts
     charts = {}
 
-    # 1. Funnel Chart
     if not leads_df.empty and not conversions_df.empty:
         total_leads = leads_df['leads'].sum()
         total_conversions = conversions_df['conversions'].sum()
@@ -129,7 +127,6 @@ def dashboard():
     else:
         charts['funnel'] = None
 
-    # 2. Revenue Trend
     if not conversions_df.empty:
         fig_revenue = go.Figure()
         fig_revenue.add_trace(go.Scatter(
@@ -143,7 +140,6 @@ def dashboard():
     else:
         charts['revenue'] = None
 
-    # 3. Source Performance
     source_performance = pd.read_sql_query('''
         SELECT 
             l.source,
@@ -176,23 +172,19 @@ def add_data():
         if data_type == 'leads':
             lead_count = int(request.form['lead_count'])
             cost = float(request.form['cost'])
-
             conn.execute('''
                 INSERT INTO leads (date, source, lead_count, cost)
                 VALUES (?, ?, ?, ?)
             ''', (date, source, lead_count, cost))
-
         elif data_type == 'conversions':
             conversions = int(request.form['conversions'])
             revenue = float(request.form['revenue'])
-
             conn.execute('''
                 INSERT INTO conversions (date, source, conversions, revenue)
                 VALUES (?, ?, ?, ?)
             ''', (date, source, conversions, revenue))
 
         conn.commit()
-
     except Exception as e:
         conn.rollback()
         return jsonify({'error': str(e)}), 400
@@ -208,12 +200,10 @@ def api_metrics():
 if __name__ == '__main__':
     init_db()
 
-    # Add sample data if database is empty
     conn = get_db_connection()
     leads_count = conn.execute('SELECT COUNT(*) FROM leads').fetchone()[0]
 
     if leads_count == 0:
-        # Add sample data
         sample_leads = [
             ('2024-09-01', 'Google Ads', 150, 750),
             ('2024-09-02', 'Facebook', 80, 400),
@@ -221,7 +211,6 @@ if __name__ == '__main__':
             ('2024-09-04', 'Google Ads', 200, 1000),
             ('2024-09-05', 'Organic', 60, 0),
         ]
-
         sample_conversions = [
             ('2024-09-01', 'Google Ads', 15, 1500),
             ('2024-09-02', 'Facebook', 8, 800),
@@ -237,7 +226,6 @@ if __name__ == '__main__':
             conn.execute('INSERT INTO conversions (date, source, conversions, revenue) VALUES (?, ?, ?, ?)', conv_data)
 
         conn.commit()
-
     conn.close()
 
     port = int(os.environ.get('PORT', 5000))
